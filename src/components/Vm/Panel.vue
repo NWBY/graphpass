@@ -6,10 +6,11 @@ const props = defineProps({
 </script>
 
 <template>
-    <div class="p-4 rounded border border-orange-300">
-        <h1>{{ vm.name}}</h1>
-        <h1>{{ vm.state}}</h1>
-        <h1>{{ vm.ipv4}}</h1>
-        <h1>{{ vm.image}}</h1>
-    </div>
+  <router-link :to="`/vms/${vm.name}`" class="p-4 rounded-lg border-2 border-orange-300">
+    <p class="mb-2 text-lg font-bold">
+      {{ vm.name }}
+    </p>
+    <p class="font-light text-sm mb-2">{{ vm.image }}</p>
+    <p class="text-lg">{{ vm.ipv4 }}</p>
+  </router-link>
 </template>

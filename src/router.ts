@@ -6,7 +6,7 @@ import New from './pages/New.vue'
 
 const routes = [
   { path: "/", component: Home },
-  { path: "/vms", component: Vm },
+  { path: "/vms/:name", component: Vm },
   { path: "/new", component: New },
 ];
 

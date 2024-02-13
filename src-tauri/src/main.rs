@@ -2,11 +2,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::format,
-    io::{BufRead, BufReader},
-    process::{Command, Stdio},
-};
+use std::process::Command;
+
+mod vm_lib;
+use vm_lib::vm_lib::{check, index_vms, show_vm};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Vm {
@@ -14,6 +13,21 @@ struct Vm {
     state: String,
     ipv4: String,
     image: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+struct FullVm {
+    name: String,
+    state: String,
+    snapshots: String,
+    ipv4: String,
+    release: String,
+    image_hash: String,
+    cpus: String,
+    load: String,
+    disk_usage: String,
+    memory_usage: String,
+    mounts: String,
 }
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
@@ -24,56 +38,23 @@ fn greet(name: &str) -> String {
 
 #[tauri::command]
 fn check_if_installed() -> String {
-    let cmd_result = Command::new("multipass").output();
-
-    let output = match cmd_result {
-        Ok(output) => "Multipass is installed! 🥳".to_string(),
-        Err(error) => "Multipass is not installed".to_string(),
-    };
+    let output = check();
 
     return output;
 }
 
 #[tauri::command]
 fn list_vms() -> Vec<Vm> {
-    let cmd_result = Command::new("multipass").arg("list").output().expect("msg");
-
-    let mut vms: Vec<Vm> = vec![];
-
-    for (index, line) in cmd_result.stdout.lines().enumerate() {
-        if index == 0 {
-            // This is the first line that contains table headers, we skip this
-            continue;
-        }
-
-        let val: String = line.unwrap();
-
-        let split = val.split(" ");
-        let mut split_vec: Vec<&str> = split.collect();
-        split_vec.retain(|&x| x != "");
-        
-
-        let mut image: String = format!(
-            "{} {}",
-            split_vec[3].to_string(),
-            split_vec.get(4).unwrap(),
-        );
-        
-        if split_vec.get(5).is_some() {
-            image = format!("{} {}", image, split_vec[5].to_string());    
-        }
-
-        let vm = Vm {
-            name: split_vec[0].to_string(),
-            state: split_vec[1].to_string(),
-            ipv4: split_vec[2].to_string(),
-            image: image,
-        };
-
-        vms.push(vm)
-    }
+    let vms = index_vms();
 
     return vms;
+}
+
+#[tauri::command]
+fn get_vm(name: &str) -> FullVm {
+    let vm = show_vm(name);
+
+    return vm;
 }
 
 #[tauri::command]
@@ -84,7 +65,7 @@ fn create_vm(name: &str) -> String {
 
     let output = match cmd_result {
         Ok(output) => String::from_utf8(output.stdout).unwrap(),
-        Err(error) => "Multipass is not installed".to_string(),
+        Err(_error) => "Multipass is not installed".to_string(),
     };
 
     return output;
@@ -96,6 +77,7 @@ fn main() {
             greet,
             check_if_installed,
             list_vms,
+            get_vm,
             create_vm
         ])
         .run(tauri::generate_context!())
